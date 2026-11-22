@@ -1,52 +1,38 @@
 # DevTech — Gestão de Funcionários
 
-Projeto acadêmico desenvolvido com HTML, JavaScript e Docker.
-- Hitalo Augusto Lourenço Guedes
-- MAtricula: 20241002803983
+Sistema acadêmico com HTML, JavaScript, Bootstrap 5.3.9 e Docker/Nginx.
+Interface responsiva verde (#004643) e bege (#F0EDE5), com cores nas tags HTML e sem arquivo CSS próprio.
 
 ## Funcionalidades
+- Cadastro, edição por métodos get/set da classe Funcionario e exclusão com confirmação.
+- Cancelamento de edição, busca por nome e filtro por cargo.
+- Resumo do total de funcionários, cargos únicos e média salarial.
+- Relatórios: salários estritamente acima de R$ 5.000, média salarial, cargos únicos e nomes em maiúsculas.
+- Busca ignora acentos e maiúsculas. Cargos equivalentes são agrupados ignorando acentos e maiúsculas.
+- Relatórios e resumo consideram todos os registros, independentemente dos filtros.
+- Salário permanece como input number. Dados ficam em memória e somem ao atualizar a página.
 
-- Cadastro, listagem, edição e exclusão de funcionários.
-- Classe Funcionario com construtor, métodos get/set e toString().
-- Atualização dos atributos pelos métodos da classe.
-- Eventos com funções anônimas e manipulação de dados com arrow functions.
-
-## Relatórios
-
-- Funcionários com salário acima de R$ 5.000.
-- Média salarial.
-- Cargos sem repetição.
-- Nomes dos funcionários em maiúsculas.
-
-## Tecnologias
-
-HTML, JavaScript, Docker e Nginx.
-
-## Como executar
-
-Com o Docker instalado e iniciado, execute na pasta do projeto:
+## Executar
+Na pasta do projeto, com Docker Desktop iniciado:
 
 ```bash
 docker build -t devtech-funcionarios .
 docker run -d --name devtech-funcionarios -p 8081:80 devtech-funcionarios
 ```
 
-Acesse: http://localhost:8081
-
-Se o container já existir e estiver parado:
+Acesse http://localhost:8081. Bootstrap requer internet (CDN).
+Se o container antigo já existir, após construir a nova imagem, substitua-o:
 
 ```bash
-docker start devtech-funcionarios
+docker stop devtech-funcionarios
+docker rm devtech-funcionarios
+docker run -d --name devtech-funcionarios -p 8081:80 devtech-funcionarios
 ```
 
-## Armazenamento
-
-Os dados ficam em um array na memória do navegador.
-Ao atualizar ou fechar a página, os cadastros são perdidos.
-
 ## Arquivos
+index.html, script.js, puc-goias.svg, Dockerfile e README.md.
 
-- index.html: formulário, tabela e botões dos relatórios.
-- script.js: classe Funcionario, cadastro, edição, exclusão e relatórios.
-- Dockerfile: configuração do servidor Nginx.
-- README.md: documentação do projeto.
+## Conferência
+Cadastre Ana, 20, Desenvolvedor, 6000 e Bruno, 30, Analista, 4000.
+Espere total 2, cargos 2 e média R$ 5.000,00. Apenas Ana deve aparecer no relatório acima de R$ 5.000.
+Teste edição, cancelamento, busca, filtros, exclusão e os quatro relatórios.

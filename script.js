@@ -61,6 +61,21 @@ const tabelaFuncionarios = document.getElementById("tabela-funcionarios");
 const botaoSalvar = document.getElementById("botao-salvar");
 const resultadoRelatorio = document.getElementById("resultado-relatorio");
 
+// ELEMENTOS DA INTERFACE BOOTSTRAP
+const busca = document.getElementById("busca-funcionario");
+const filtro = document.getElementById("filtro-cargo");
+const cancelar = document.getElementById("botao-cancelar");
+const titulo = document.getElementById("titulo-formulario");
+const normalizar = (texto) => texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+
+function mostrarMensagem(texto) {
+    const area = document.getElementById("mensagem-sistema");
+    const alerta = document.createElement("div");
+    alerta.className = "alert alert-success";
+    alerta.textContent = texto;
+    area.replaceChildren(alerta);
+}
+
 // FORMATAÇÃO MONETÁRIA
 const formatarMoeda = (valor) => {
     return valor.toLocaleString("pt-BR", {
@@ -93,6 +108,8 @@ const atualizarFuncionario = (id, nome, idade, cargo, salario) => {
 // LIMPAR FORMULÁRIO
 function limparFormulario() {
     formulario.reset();
+    cancelar.hidden = true;
+    titulo.textContent = "Cadastrar funcionário";
     idEdicao = null;
     botaoSalvar.textContent = "Cadastrar";
     campoNome.focus();
@@ -102,7 +119,24 @@ function limparFormulario() {
 function renderizarFuncionarios() {
     tabelaFuncionarios.textContent = "";
 
-    funcionarios.forEach((funcionario) => {
+    atualizarResumoEFiltro();
+    const resultados = funcionarios.filter((f) =>
+        normalizar(f.getNome()).includes(normalizar(busca.value)) &&
+        (!filtro.value || normalizar(f.getCargo()) === filtro.value)
+    );
+    document.getElementById("contador-resultados").textContent =
+        `Exibindo ${resultados.length} de ${funcionarios.length} funcionários.`;
+    if (!resultados.length) {
+        const linha = document.createElement("tr");
+        const celula = document.createElement("td");
+        celula.colSpan = 5;
+        celula.className = "text-center py-5";
+        celula.textContent = funcionarios.length ? "Nenhum resultado. Altere a busca ou o filtro." : "Nenhum funcionário cadastrado. Comece pelo formulário.";
+        linha.append(celula);
+        tabelaFuncionarios.append(linha);
+    }
+
+    resultados.forEach((funcionario) => {
         const linha = document.createElement("tr");
 
         const dados = [
@@ -119,10 +153,13 @@ function renderizarFuncionarios() {
         });
 
         const celulaAcoes = document.createElement("td");
+        celulaAcoes.className = "text-nowrap";
 
         const botaoEditar = document.createElement("button");
         botaoEditar.type = "button";
         botaoEditar.textContent = "Editar";
+        botaoEditar.className = "btn btn-sm btn-outline-dark";
+        botaoEditar.setAttribute("aria-label", `Editar ${funcionario.getNome()}`);
 
         // Evento onclick com função anônima.
         botaoEditar.onclick = function () {
@@ -132,6 +169,8 @@ function renderizarFuncionarios() {
         const botaoExcluir = document.createElement("button");
         botaoExcluir.type = "button";
         botaoExcluir.textContent = "Excluir";
+        botaoExcluir.className = "btn btn-sm btn-outline-danger ms-2";
+        botaoExcluir.setAttribute("aria-label", `Excluir ${funcionario.getNome()}`);
 
         botaoExcluir.onclick = function () {
             excluirFuncionario(funcionario.id);
@@ -159,7 +198,9 @@ const editarFuncionario = (id) => {
     campoNome.value = funcionario.getNome();
     campoIdade.value = funcionario.getIdade();
     campoCargo.value = funcionario.getCargo();
-    campoSalario.value = funcionario.getSalario();
+    campoSalario.value = funcionario.getSalario().toFixed(2);
+    cancelar.hidden = false;
+    titulo.textContent = "Editar funcionário";
 
     idEdicao = id;
     botaoSalvar.textContent = "Salvar alterações";
@@ -170,6 +211,8 @@ const editarFuncionario = (id) => {
 
 // EXCLUSÃO COM FILTER E ARROW FUNCTION
 const excluirFuncionario = (id) => {
+    const funcionario = buscarFuncionario(id);
+    if (!funcionario || !window.confirm(`Excluir ${funcionario.getNome()}? Esta ação não pode ser desfeita.`)) return;
     funcionarios = funcionarios.filter(
         (funcionario) => funcionario.id !== id
     );
@@ -179,7 +222,8 @@ const excluirFuncionario = (id) => {
     }
 
     renderizarFuncionarios();
-    console.log("Funcionário excluído com sucesso!");
+    mostrarMensagem("Funcionário excluído com sucesso!");
+    busca.focus();
 };
 
 // VALIDAR E SALVAR OS DADOS
@@ -233,7 +277,7 @@ const salvarFuncionario = () => {
         funcionarios.push(funcionario);
         proximoId++;
 
-        console.log("Funcionário cadastrado com sucesso!");
+        mostrarMensagem("Funcionário cadastrado com sucesso!");
     } else {
         const atualizado = atualizarFuncionario(
             idEdicao,
@@ -248,7 +292,7 @@ const salvarFuncionario = () => {
             return;
         }
 
-        console.log("Alterações salvas com sucesso!");
+        mostrarMensagem("Alterações salvas com sucesso!");
     }
 
     renderizarFuncionarios();
@@ -270,6 +314,11 @@ formulario.addEventListener("submit", function (evento) {
 // RELATÓRIOS
 function exibirRelatorio(tipo) {
     relatorioAtual = tipo;
+    Object.entries(botoesRelatorios).forEach(([id, valor]) => {
+        const botao = document.getElementById(id);
+        botao.classList.toggle("active", valor === tipo);
+        botao.setAttribute("aria-pressed", String(valor === tipo));
+    });
 
     if (funcionarios.length === 0) {
         resultadoRelatorio.textContent =
@@ -312,7 +361,8 @@ function exibirRelatorio(tipo) {
                 (funcionario) => funcionario.getCargo()
             );
 
-            const cargosUnicos = [...new Set(cargos)];
+            const cargosUnicos = [...new Set(cargos.map(normalizar))]
+                .map((chave) => cargos.find((cargo) => normalizar(cargo) === chave));
 
             texto = "Cargos sem repetição:\n" +
                 cargosUnicos.join("\n");
@@ -346,6 +396,39 @@ Object.entries(botoesRelatorios).forEach(([id, tipo]) => {
         exibirRelatorio(tipo);
     };
 });
+
+// RESUMO, BUSCA E FILTRO (os relatórios usam todos os funcionários)
+function atualizarResumoEFiltro() {
+    const cargos = new Map();
+    funcionarios.forEach((f) => {
+        const chave = normalizar(f.getCargo());
+        if (!cargos.has(chave)) cargos.set(chave, f.getCargo());
+    });
+    const selecionado = filtro.value;
+    filtro.replaceChildren(new Option("Todos os cargos", ""));
+    [...cargos].sort((a, b) => a[1].localeCompare(b[1], "pt-BR"))
+        .forEach(([valor, texto]) => filtro.add(new Option(texto, valor)));
+    filtro.value = cargos.has(selecionado) ? selecionado : "";
+    document.getElementById("total-funcionarios").textContent = funcionarios.length;
+    document.getElementById("total-cargos").textContent = cargos.size;
+    document.getElementById("media-salarial").textContent = funcionarios.length
+        ? formatarMoeda(funcionarios.reduce((soma, f) => soma + f.getSalario(), 0) / funcionarios.length)
+        : "—";
+}
+busca.addEventListener("input", renderizarFuncionarios);
+filtro.addEventListener("change", renderizarFuncionarios);
+cancelar.onclick = function () {
+    limparFormulario();
+    mostrarMensagem("Edição cancelada. Os dados foram mantidos.");
+};
+campoSalario.addEventListener("blur", function () {
+    const valor = Number(campoSalario.value);
+    if (campoSalario.value !== "" && Number.isFinite(valor) && valor >= 0) campoSalario.value = valor.toFixed(2);
+});
+Object.keys(botoesRelatorios).forEach((id) => document.getElementById(id).setAttribute("aria-pressed", "false"));
+
+// Função tradicional: funcionarios.map(function (f) { return f.getNome(); });
+// Arrow equivalente: funcionarios.map((f) => f.getNome());
 
 // INICIALIZAÇÃO
 renderizarFuncionarios();
